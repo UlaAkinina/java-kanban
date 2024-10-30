@@ -13,9 +13,9 @@ import java.util.HashMap;
 public class TaskManager {
 
     private int id = 1;
-    HashMap<Integer, Task> tasks = new HashMap<>();
-    HashMap<Integer, Epic> epics = new HashMap<>();
-    HashMap<Integer, Subtask> subtasks = new HashMap<>();
+    private HashMap<Integer, Task> tasks = new HashMap<>();
+    private HashMap<Integer, Epic> epics = new HashMap<>();
+    private HashMap<Integer, Subtask> subtasks = new HashMap<>();
 
 
     public void addTask(Task task) {
@@ -36,7 +36,7 @@ public class TaskManager {
         subtasks.put(subtask.getId(), subtask);
         epic.setSubtaskIds(subtask.getId());
 
-        updateStatusEpic(epic);
+        epicCheckStatus(epic);
 
         id++;
     }
@@ -76,10 +76,7 @@ public class TaskManager {
     }
 
     public void deleteTask(int id) {
-        if (tasks.get(id) != null) {
-            tasks.remove(id);
-        }
-
+        tasks.remove(id);
     }
 
 
@@ -89,7 +86,7 @@ public class TaskManager {
         if (subtask != null) {
             Epic epic = epics.get(subtask.getEpicId());
             epic.getSubtaskIds().remove((Integer) subtask.getId());
-            updateStatusEpic(epic);
+            epicCheckStatus(epic);
             subtasks.remove(id);
 
         }
@@ -115,7 +112,7 @@ public class TaskManager {
         subtasks.clear();
         for (Epic epic : epics.values()) {
             epic.getSubtaskIds().clear();
-            updateStatusEpic(epic);
+            epicCheckStatus(epic);
         }
     }
 
@@ -124,29 +121,30 @@ public class TaskManager {
         subtasks.clear();
     }
 
-    public void updateStatusEpic(Epic epic) {
+    public void epicCheckStatus(Epic epic) {
         ArrayList<Integer> subtaskIds = epic.getSubtaskIds();
         if (subtasks.isEmpty()) {
             epic.setStatus(Status.NEW);
             return;
         }
+        int newStat = 0;
         for (int subtaskId : subtaskIds) {
+
             Subtask subtask = subtasks.get(subtaskId);
-            switch (subtask.getStatus()) {
-                case NEW:
-                    epic.setStatus(Status.NEW);
-                    break;
-                case DONE:
-                    epic.setStatus(Status.DONE);
-                    break;
-                default:
+            if (subtask.getStatus() == Status.IN_PROGRESS) {
                     epic.setStatus(Status.IN_PROGRESS);
-                    break;
-
-
+                    return;
+                }
+                if (subtask.getStatus() == Status.NEW) {
+                    newStat++;
+                }
             }
-        }
-    }
+            if (newStat == epic.getSubtaskIds().size()) {
+                epic.setStatus(Status.NEW);
+            } else {
+                epic.setStatus(Status.DONE);
+            }
+           }
 
     public void updateTask(Task task) {
         if (tasks.containsKey(task.getId())) {
@@ -160,14 +158,14 @@ public class TaskManager {
         if (subtasks.containsKey(subtask.getId())) {
             subtasks.put(subtask.getId(), subtask);
             Epic epic = epics.get(subtask.getEpicId());
-            updateStatusEpic(epic);
+            epicCheckStatus(epic);
         }
     }
 
     public void updateEpic(Epic epic) {
         if (epics.containsKey(epic.getId())) {
             epics.put(epic.getId(), epic);
-            updateStatusEpic(epic);
+            epicCheckStatus(epic);
         }
     }
 
